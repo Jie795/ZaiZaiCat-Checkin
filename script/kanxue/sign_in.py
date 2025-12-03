@@ -50,6 +50,7 @@ class KanxueSignInManager:
             config_path = Path(config_path)
 
         self.config_path = config_path
+        self.site_name = "看雪论坛"
         self.accounts = []
         self.load_config()
 
