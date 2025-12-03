@@ -367,7 +367,7 @@ class SFTasksManager:
             total_points = sum(stat.get('total_points', 0) for stat in self.task_summary)
 
             # 构建推送标题
-            title = f"顺丰积分任务完成 ✅"
+            title = f"顺丰快递积分任务完成 ✅"
 
             # 构建推送内容
             content_parts = [
@@ -413,7 +413,7 @@ class SFTasksManager:
 
             # 发送推送
             send(title, content)
-            logger.info(f"✅ 顺丰任务汇总推送发送成功")
+            logger.info(f"✅ 顺丰快递任务汇总推送发送成功")
 
         except Exception as e:
             logger.error(f"❌ 发送任务汇总推送失败: {str(e)}", exc_info=True)
