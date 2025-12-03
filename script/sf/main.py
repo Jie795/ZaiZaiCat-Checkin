@@ -19,6 +19,7 @@ Date: 2025-01-20
 
 import json
 import logging
+import os
 import sys
 import time
 import random
@@ -30,7 +31,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from notification import send_notification, NotificationSound
+from notify import send
 
 # 导入API模块（当前目录）
 from api import SFExpressAPI
@@ -70,7 +71,29 @@ class SFTasksManager:
         self.load_config()
 
     def load_config(self) -> None:
-        """加载配置文件"""
+        """从环境变量或配置文件加载配置"""
+        # 优先从环境变量读取配置
+        env_config = os.getenv('SF_CONFIG')
+        if env_config:
+            try:
+                logger.info("从环境变量读取顺丰配置")
+                config = json.loads(env_config)
+                # 如果环境变量是完整的配置对象
+                if 'sf' in config:
+                    sf_config = config.get('sf', {})
+                else:
+                    # 如果环境变量直接是 sf 配置
+                    sf_config = config
+                self.accounts = sf_config.get('accounts', [])
+                if self.accounts:
+                    logger.info(f"从环境变量成功加载 {len(self.accounts)} 个账号配置")
+                    return
+            except json.JSONDecodeError as e:
+                logger.warning(f"环境变量配置JSON解析失败: {e}，将尝试从文件读取")
+            except Exception as e:
+                logger.warning(f"读取环境变量配置失败: {e}，将尝试从文件读取")
+        
+        # 如果环境变量没有配置或解析失败，从文件读取
         try:
             logger.info(f"正在读取配置文件: {self.config_path}")
             with open(self.config_path, 'r', encoding='utf-8') as f:
@@ -83,7 +106,7 @@ class SFTasksManager:
             if not self.accounts:
                 logger.warning("配置文件中没有找到顺丰账号信息")
             else:
-                logger.info(f"成功加载 {len(self.accounts)} 个账号配置")
+                logger.info(f"从配置文件成功加载 {len(self.accounts)} 个账号配置")
 
         except FileNotFoundError:
             logger.error(f"配置文件不存在: {self.config_path}")
@@ -389,11 +412,7 @@ class SFTasksManager:
             content = "\n".join(content_parts)
 
             # 发送推送
-            send_notification(
-                title=title,
-                content=content,
-                sound=NotificationSound.BIRDSONG
-            )
+            send(title, content)
             logger.info(f"✅ {self.site_name}任务汇总推送发送成功")
 
         except Exception as e:
@@ -456,15 +475,12 @@ def main():
 
         # 发送错误通知
         try:
-            send_notification(
-                title=f"顺丰快递积分任务异常 ❌",
-                content=(
-                    f"❌ 任务执行异常\n"
-                    f"💬 错误信息: {str(e)}\n"
-                    f"⏱️ 执行耗时: {int(duration)}秒\n"
-                    f"🕐 完成时间: {end_time.strftime('%Y-%m-%d %H:%M:%S')}"
-                ),
-                sound=NotificationSound.ALARM
+            send(
+                f"顺丰快递积分任务异常 ❌",
+                f"❌ 任务执行异常\n"
+                f"💬 错误信息: {str(e)}\n"
+                f"⏱️ 执行耗时: {int(duration)}秒\n"
+                f"🕐 完成时间: {end_time.strftime('%Y-%m-%d %H:%M:%S')}"
             )
         except:
             pass

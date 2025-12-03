@@ -22,6 +22,7 @@ Updated: 2025-12-18
 
 import json
 import logging
+import os
 import sys
 from typing import List, Dict, Any
 from pathlib import Path
@@ -33,7 +34,7 @@ project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 # 导入需要的模块
-from notification import send_notification, NotificationSound
+from notify import send
 
 
 class WPSTasks:
@@ -85,12 +86,37 @@ class WPSTasks:
         return logger
 
     def _init_accounts(self):
-        """从配置文件中读取账号信息"""
+        """从环境变量或配置文件中读取账号信息"""
+        config_data = None
+        
+        # 优先从环境变量读取配置
+        env_config = os.getenv('WPS_CONFIG')
+        if env_config:
+            try:
+                self.logger.info("从环境变量读取 WPS 配置")
+                config_data = json.loads(env_config)
+                # 如果环境变量是完整的配置对象
+                if 'wps' in config_data:
+                    wps_config = config_data.get('wps', {})
+                else:
+                    # 如果环境变量直接是 wps 配置
+                    wps_config = config_data
+                self.accounts = wps_config.get('accounts', [])
+                if self.accounts:
+                    self.logger.info(f"从环境变量成功加载 {len(self.accounts)} 个账号配置")
+                    return
+            except json.JSONDecodeError as e:
+                self.logger.warning(f"环境变量配置JSON解析失败: {e}，将尝试从文件读取")
+            except Exception as e:
+                self.logger.warning(f"读取环境变量配置失败: {e}，将尝试从文件读取")
+        
+        # 如果环境变量没有配置或解析失败，从文件读取
         if not self.config_path.exists():
             self.logger.error(f"配置文件不存在: {self.config_path}")
             raise FileNotFoundError(f"配置文件不存在: {self.config_path}")
 
         try:
+            self.logger.info(f"从配置文件读取: {self.config_path}")
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 config_data = json.load(f)
                 # 从统一配置文件的 wps 节点读取
@@ -100,7 +126,7 @@ class WPSTasks:
             if not self.accounts:
                 self.logger.warning("配置文件中没有找到 wps 账号信息")
             else:
-                self.logger.info(f"成功加载 {len(self.accounts)} 个账号配置")
+                self.logger.info(f"从配置文件成功加载 {len(self.accounts)} 个账号配置")
 
         except json.JSONDecodeError as e:
             self.logger.error(f"配置文件JSON解析失败: {e}")
@@ -482,11 +508,7 @@ class WPSTasks:
 
         # 发送通知
         try:
-            send_notification(
-                title=title,
-                content=content,
-                sound=NotificationSound.BIRDSONG
-            )
+            send(title, content)
             self.logger.info("✅ 推送通知已发送")
         except Exception as e:
             self.logger.warning(f"⚠️ 发送推送通知失败: {str(e)}")

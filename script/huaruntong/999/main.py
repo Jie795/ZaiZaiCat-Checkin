@@ -19,15 +19,34 @@ current_dir = Path(__file__).parent
 project_root = current_dir.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from notification import send_notification, NotificationSound
+from notify import send
 
 
 def load_config():
-    """加载统一配置文件"""
+    """从环境变量或配置文件加载配置"""
+    # 优先从环境变量读取配置
+    env_config = os.getenv('HUARUNTONG_999_CONFIG')
+    if env_config:
+        try:
+            print("从环境变量读取华润通999配置")
+            config = json.loads(env_config)
+            # 如果环境变量是完整的配置对象
+            if 'huaruntong' in config:
+                return config
+            else:
+                # 如果环境变量直接是 huaruntong 配置的一部分，包装成完整格式
+                return {'huaruntong': {'999': config}}
+        except json.JSONDecodeError as e:
+            print(f"环境变量配置JSON解析失败: {e}，将尝试从文件读取")
+        except Exception as e:
+            print(f"读取环境变量配置失败: {e}，将尝试从文件读取")
+    
+    # 如果环境变量没有配置或解析失败，从文件读取
     # 使用统一的 token.json 配置文件
     # 从当前文件位置向上三级到达项目根目录，然后进入 config 目录
     current_dir = os.path.dirname(os.path.abspath(__file__))
     config_path = os.path.join(current_dir, '..', '..', '..', 'config', 'token.json')
+    print(f"从配置文件读取: {config_path}")
     with open(config_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
@@ -154,13 +173,10 @@ def send_notification_summary(all_results, start_time, end_time):
         # 构建通知标题
         if failed_count == 0:
             title = "华润通999答题成功 ✅"
-            sound = NotificationSound.BIRDSONG
         elif success_count == 0:
             title = "华润通999答题失败 ❌"
-            sound = NotificationSound.ALARM
         else:
             title = "华润通999答题部分成功 ⚠️"
-            sound = NotificationSound.BELL
 
         # 构建通知内容
         content_parts = [
@@ -189,11 +205,7 @@ def send_notification_summary(all_results, start_time, end_time):
         content = "\n".join(content_parts)
 
         # 发送通知
-        send_notification(
-            title=title,
-            content=content,
-            sound=sound
-        )
+        send(title, content)
         print("✅ 推送通知发送成功")
 
     except Exception as e:

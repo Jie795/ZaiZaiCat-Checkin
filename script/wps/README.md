@@ -45,7 +45,36 @@ wps/
 
 ## 配置说明
 
-### 1. 账号配置
+### 配置方式
+
+WPS脚本支持两种配置方式，**优先使用环境变量**，如果环境变量不存在则从 `config/token.json` 文件读取。
+
+### 1. 环境变量配置（推荐）
+
+在青龙面板或系统环境变量中设置 `WPS_CONFIG` 环境变量：
+
+**方式一：完整配置格式**
+```bash
+export WPS_CONFIG='{"wps":{"accounts":[{"account_name":"大号","user_id":123456789,"cookies":"YOUR_COOKIES","user_agent":"Mozilla/5.0..."}]}}'
+```
+
+**方式二：直接配置格式**
+```bash
+export WPS_CONFIG='{"accounts":[{"account_name":"大号","user_id":123456789,"cookies":"YOUR_COOKIES","user_agent":"Mozilla/5.0..."}]}'
+```
+
+**青龙面板配置：**
+1. 进入青龙面板 → 环境变量
+2. 添加环境变量：
+   - 名称：`WPS_CONFIG`
+   - 值：`{"wps":{"accounts":[{"account_name":"大号","user_id":123456789,"cookies":"YOUR_COOKIES","user_agent":"Mozilla/5.0..."}]}}`
+
+**注意事项：**
+- 环境变量值必须是有效的 JSON 格式
+- JSON 字符串中的引号需要转义或使用单引号包裹整个 JSON 字符串
+- 如果环境变量配置成功，脚本会优先使用环境变量，不会读取配置文件
+
+### 2. 配置文件方式
 
 在项目根目录的 `config/token.json` 文件中配置WPS账号信息：
 

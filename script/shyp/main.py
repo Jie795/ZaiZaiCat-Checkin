@@ -49,7 +49,7 @@ notification_dir = os.path.dirname(parent_dir)
 if notification_dir not in sys.path:
     sys.path.insert(0, notification_dir)
 
-from notification import send_notification, NotificationSound
+from notify import send
 
 # ==================== 延迟时间常量配置 (秒) ====================
 # 账号级别延迟
@@ -142,20 +142,42 @@ class ShypTasks:
         return logger
 
     def _init_accounts(self):
-        """加载配置文件"""
+        """从环境变量或配置文件加载配置"""
+        # 优先从环境变量读取配置
+        env_config = os.getenv('SHYP_CONFIG')
+        if env_config:
+            try:
+                self.logger.info("从环境变量读取上海云媒体配置")
+                config = json.loads(env_config)
+                # 如果环境变量是完整的配置对象
+                if 'shyp' in config:
+                    shyp_config = config.get('shyp', {})
+                else:
+                    # 如果环境变量直接是 shyp 配置
+                    shyp_config = config
+                self.accounts = shyp_config.get('accounts', [])
+                if self.accounts:
+                    self.logger.info(f"从环境变量成功加载 {len(self.accounts)} 个账号配置")
+                    return
+            except json.JSONDecodeError as e:
+                self.logger.warning(f"环境变量配置JSON解析失败: {e}，将尝试从文件读取")
+            except Exception as e:
+                self.logger.warning(f"读取环境变量配置失败: {e}，将尝试从文件读取")
+        
+        # 如果环境变量没有配置或解析失败，从文件读取
         try:
             self.logger.info(f"正在读取配置文件: {self.config_path}")
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
 
-            # 获取顺丰的配置
-            sf_config = config.get('shyp', {})
-            self.accounts = sf_config.get('accounts', [])
+            # 获取上海云媒体的配置
+            shyp_config = config.get('shyp', {})
+            self.accounts = shyp_config.get('accounts', [])
 
             if not self.accounts:
                 self.logger.warning("配置文件中没有找到账号信息")
             else:
-                self.logger.info(f"成功加载 {len(self.accounts)} 个账号配置")
+                self.logger.info(f"从配置文件成功加载 {len(self.accounts)} 个账号配置")
 
         except FileNotFoundError:
             self.logger.error(f"配置文件不存在: {self.config_path}")
@@ -809,11 +831,7 @@ class ShypTasks:
             content = "\n".join(content_parts)
 
             # 发送推送
-            send_notification(
-                title=title,
-                content=content,
-                sound=NotificationSound.BIRDSONG
-            )
+            send(title, content)
             self.logger.info("✅ 任务汇总推送发送成功")
 
         except Exception as e:

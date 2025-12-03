@@ -18,6 +18,7 @@ Date: 2025-01-20
 
 import json
 import logging
+import os
 import sys
 from typing import Dict, Any, List
 from datetime import datetime
@@ -27,7 +28,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from notification import send_notification, NotificationSound
+from notify import send
 from api import KanxueAPI
 
 # 配置日志
@@ -59,7 +60,35 @@ class KanxueSignInManager:
         self.load_config()
 
     def load_config(self) -> None:
-        """加载配置文件"""
+        """从环境变量或配置文件加载配置"""
+        # 优先从环境变量读取配置
+        env_config = os.getenv('KANXUE_CONFIG')
+        if env_config:
+            try:
+                logger.info("从环境变量读取看雪论坛配置")
+                config = json.loads(env_config)
+                # 如果环境变量是完整的配置对象
+                if 'kanxue' in config:
+                    kanxue_config = config.get('kanxue', {})
+                    # 兼容嵌套结构
+                    if 'kanxue' in kanxue_config:
+                        kanxue_config = kanxue_config.get('kanxue', {})
+                else:
+                    # 如果环境变量直接是 kanxue 配置
+                    kanxue_config = config
+                    # 兼容嵌套结构
+                    if 'kanxue' in kanxue_config:
+                        kanxue_config = kanxue_config.get('kanxue', {})
+                self.accounts = kanxue_config.get('accounts', [])
+                if self.accounts:
+                    logger.info(f"从环境变量成功加载 {len(self.accounts)} 个账号配置")
+                    return
+            except json.JSONDecodeError as e:
+                logger.warning(f"环境变量配置JSON解析失败: {e}，将尝试从文件读取")
+            except Exception as e:
+                logger.warning(f"读取环境变量配置失败: {e}，将尝试从文件读取")
+        
+        # 如果环境变量没有配置或解析失败，从文件读取
         try:
             logger.info(f"正在读取配置文件: {self.config_path}")
             with open(self.config_path, 'r', encoding='utf-8') as f:
@@ -75,7 +104,7 @@ class KanxueSignInManager:
             if not self.accounts:
                 logger.warning("配置文件中没有找到看雪论坛账号信息")
             else:
-                logger.info(f"成功加载 {len(self.accounts)} 个账号配置")
+                logger.info(f"从配置文件成功加载 {len(self.accounts)} 个账号配置")
 
         except FileNotFoundError:
             logger.error(f"配置文件不存在: {self.config_path}")
@@ -179,13 +208,10 @@ class KanxueSignInManager:
             # 构建通知标题
             if failed_count == 0:
                 title = f"{self.site_name}签到成功 ✅"
-                sound = NotificationSound.BIRDSONG
             elif success_count == 0:
                 title = f"{self.site_name}签到失败 ❌"
-                sound = NotificationSound.ALARM
             else:
                 title = f"{self.site_name}签到部分成功 ⚠️"
-                sound = NotificationSound.BELL
 
             # 构建通知内容
             content_parts = [f"📊 执行统计:"]
@@ -236,11 +262,7 @@ class KanxueSignInManager:
             content = "\n".join(content_parts)
 
             # 发送通知
-            send_notification(
-                title=title,
-                content=content,
-                sound=sound
-            )
+            send(title, content)
             logger.info(f"✅ {self.site_name}签到推送发送成功")
 
         except Exception as e:
@@ -317,15 +339,12 @@ def main():
 
         # 发送错误通知
         try:
-            send_notification(
-                title=f"看雪论坛签到任务异常 ❌",
-                content=(
-                    f"❌ 任务执行异常\n"
-                    f"💬 错误信息: {str(e)}\n"
-                    f"⏱️ 执行耗时: {int(duration)}秒\n"
-                    f"🕐 完成时间: {end_time.strftime('%Y-%m-%d %H:%M:%S')}"
-                ),
-                sound=NotificationSound.ALARM
+            send(
+                f"看雪论坛签到任务异常 ❌",
+                f"❌ 任务执行异常\n"
+                f"💬 错误信息: {str(e)}\n"
+                f"⏱️ 执行耗时: {int(duration)}秒\n"
+                f"🕐 完成时间: {end_time.strftime('%Y-%m-%d %H:%M:%S')}"
             )
         except:
             pass
