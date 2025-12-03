@@ -22,6 +22,32 @@ erke/
 
 ## 配置说明
 
+### 配置方式
+
+鸿星尔克脚本支持两种配置方式，**优先使用环境变量**，如果环境变量不存在则从 `config/token.json` 文件读取。
+
+### 1. 环境变量配置（推荐）
+
+在青龙面板或系统环境变量中设置 `ERKE_CONFIG` 环境变量：
+
+```bash
+export ERKE_CONFIG='{"erke":{"accounts":[{"account_name":"账号1","member_id":"你的会员ID","enterprise_id":"你的企业ID","unionid":"你的unionid","openid":"你的openid","wx_openid":"你的微信openid","user_agent":"自定义UA（可选）"}]}}'
+```
+
+或者直接设置 erke 配置部分：
+
+```bash
+export ERKE_CONFIG='{"accounts":[{"account_name":"账号1","member_id":"你的会员ID","enterprise_id":"你的企业ID","unionid":"你的unionid","openid":"你的openid","wx_openid":"你的微信openid","user_agent":"自定义UA（可选）"}]}'
+```
+
+**青龙面板配置：**
+1. 进入青龙面板 → 环境变量
+2. 添加环境变量：
+   - 名称：`ERKE_CONFIG`
+   - 值：`{"erke":{"accounts":[{"account_name":"账号1","member_id":"你的会员ID","enterprise_id":"你的企业ID","unionid":"你的unionid","openid":"你的openid","wx_openid":"你的微信openid","user_agent":"自定义UA（可选）"}]}}`
+
+### 2. 配置文件方式
+
 编辑项目根目录下的 `/config/token.json` 文件，在 `erke` 节点下添加账号信息：
 
 ```json

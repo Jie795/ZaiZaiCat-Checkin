@@ -224,6 +224,58 @@ pip install pycryptodome
 
 ## ⚙️ 配置说明
 
+### 配置方式
+
+所有脚本支持两种配置方式，**优先使用环境变量**，如果环境变量不存在则从 `config/token.json` 文件读取：
+
+1. **环境变量配置（推荐）**：适合在青龙面板等容器环境中使用，更安全
+2. **配置文件方式**：适合本地开发使用
+
+### 环境变量配置
+
+各平台对应的环境变量名称如下：
+
+| 平台 | 环境变量名 | 说明 |
+|------|-----------|------|
+| WPS Office | `WPS_CONFIG` | WPS配置（JSON格式） |
+| 顺丰速运 | `SF_CONFIG` | 顺丰配置（JSON格式） |
+| 上海云媒体 | `SHYP_CONFIG` | 上海云媒体配置（JSON格式） |
+| 恩山论坛 | `ENSHAN_CONFIG` | 恩山论坛配置（JSON格式） |
+| 看雪论坛 | `KANXUE_CONFIG` | 看雪论坛配置（JSON格式） |
+| 鸿星尔克 | `ERKE_CONFIG` | 鸿星尔克配置（JSON格式） |
+| 华润通-999 | `HUARUNTONG_999_CONFIG` | 华润通999配置（JSON格式） |
+| 华润通-微信 | `HUARUNTONG_WX_CONFIG` | 华润通微信小程序配置（JSON格式） |
+| 华润通-Ole | `HUARUNTONG_OLE_CONFIG` | Ole配置（JSON格式） |
+| 华润通-文体未来荟 | `HUARUNTONG_WENTIWEILAIHUI_CONFIG` | 文体未来荟配置（JSON格式） |
+
+#### 环境变量配置示例
+
+**WPS Office 配置示例：**
+
+在青龙面板或系统环境变量中设置：
+
+```bash
+export WPS_CONFIG='{"wps":{"accounts":[{"account_name":"大号","user_id":123456789,"cookies":"YOUR_COOKIES","user_agent":"Mozilla/5.0..."}]}}'
+```
+
+或者直接设置对应平台的配置部分：
+
+```bash
+export WPS_CONFIG='{"accounts":[{"account_name":"大号","user_id":123456789,"cookies":"YOUR_COOKIES","user_agent":"Mozilla/5.0..."}]}'
+```
+
+**青龙面板配置：**
+
+在青龙面板的"环境变量"中添加：
+- 名称：`WPS_CONFIG`
+- 值：`{"wps":{"accounts":[{"account_name":"大号","user_id":123456789,"cookies":"YOUR_COOKIES","user_agent":"Mozilla/5.0..."}]}}`
+
+**注意事项：**
+- 环境变量值必须是有效的 JSON 格式
+- 如果环境变量包含完整的配置对象（如 `{"wps": {...}}`），脚本会自动提取对应平台配置
+- 如果环境变量直接是平台配置（如 `{"accounts": [...]}`），脚本也会正确处理
+- JSON 字符串中的引号需要转义或使用单引号包裹
+
 ### 配置文件结构
 
 `config/token.json` 采用 JSON 格式，按平台分类存储账号信息。
