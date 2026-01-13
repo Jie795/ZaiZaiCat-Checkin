@@ -33,7 +33,9 @@ def print(text, *args, **kw):
 # 通知服务
 # fmt: off
 push_config = {
-    'HITOKOTO': True,                  # 启用一言（随机句子）
+    'HITOKOTO': False,                  # 启用一言（随机句子）
+
+    'ZHJAY_API_URL': '',  # 自定义通知API地址
 
     'BARK_PUSH': '',                    # bark IP 或设备码，例：https://api.day.app/DxHcxxxxxRxxxxxxcm/
     'BARK_ARCHIVE': '',                 # bark 推送是否存档
@@ -141,6 +143,37 @@ for k in push_config:
     if os.getenv(k):
         v = os.getenv(k)
         push_config[k] = v
+
+
+def zhjay_notify(title: str, content: str) -> None:
+    """
+    使用 zhjay 自定义API 推送消息。
+    """
+    if not push_config.get("ZHJAY_API_URL"):
+        return
+    print("zhjay 通知服务启动")
+
+    url = push_config.get("ZHJAY_API_URL")
+    headers = {"Content-Type": "application/json;charset=utf-8"}
+    data = {
+        "title": title,
+        "content": content,
+    }
+    
+    try:
+        response = requests.post(
+            url=url, data=json.dumps(data), headers=headers, timeout=15
+        ).json()
+
+        if response.get("code") == 200 or response.get("success"):
+            print("zhjay 通知推送成功！")
+            return True
+        else:
+            print(f"zhjay 通知推送失败！错误信息：{response}")
+            return False
+    except Exception as e:
+        print(f"zhjay 通知推送异常！{e}")
+        return False
 
 
 def bark(title: str, content: str) -> None:
@@ -986,6 +1019,9 @@ def one() -> str:
 
 def add_notify_function():
     notify_function = []
+    # 优先使用 zhjay 通知
+    if push_config.get("ZHJAY_API_URL"):
+        notify_function.append(zhjay_notify)
     if push_config.get("BARK_PUSH"):
         notify_function.append(bark)
     if push_config.get("CONSOLE"):
@@ -1076,6 +1112,23 @@ def send(title: str, content: str, ignore_default_config: bool = False, **kwargs
     content += "\n\n" + one() if hitokoto != "false" else ""
 
     notify_function = add_notify_function()
+    
+    # 如果配置了 zhjay 通知，先尝试使用它
+    if push_config.get("ZHJAY_API_URL"):
+        try:
+            result = zhjay_notify(title, content)
+            if result:
+                print("使用 zhjay 通知成功，跳过其他通知渠道")
+                return
+            else:
+                print("zhjay 通知失败，尝试使用其他通知渠道")
+                # 从列表中移除 zhjay_notify，避免重复调用
+                notify_function = [f for f in notify_function if f != zhjay_notify]
+        except Exception as e:
+            print(f"zhjay 通知异常：{e}，尝试使用其他通知渠道")
+            notify_function = [f for f in notify_function if f != zhjay_notify]
+    
+    # 使用其他通知渠道
     ts = [
         threading.Thread(target=mode, args=(title, content), name=mode.__name__)
         for mode in notify_function
